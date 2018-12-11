@@ -59,6 +59,8 @@ def parse_args():
 if __name__ == '__main__':
   args = parse_args()
 
+  cfg.MIX_TRAINING = False # Close mix training
+
   print('Called with args:')
   print(args)
 

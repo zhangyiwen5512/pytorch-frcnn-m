@@ -34,6 +34,8 @@ def get_minibatch(roidb, num_classes):
   # Get the input image blob, formatted for caffe
   if cfg.MIX_TRAINING:
     im_blob, im_scales, trans_scales = _get_mix_image_blob(roidb, random_scale_inds)
+    if cfg.MIX_TEST:
+      print("MIX-TRAINING: TEST: im_scalse {} \n\t trans_scales {}".format(im_scales, trans_scales))
     blobs = {'data': im_blob}
     assert len(im_scales) == 2, "MIX-TRAINING ERROR! Single batch only"
 
@@ -41,7 +43,7 @@ def get_minibatch(roidb, num_classes):
       gt_inds  = np.where(roidb[0]['gt_classes'] != 0)[0]
       gt_inds2 = np.where(roidb[1]['gt_classes'] != 0)[0]
       if cfg.MIX_TEST:
-        print("TEST: gt_inds {} 2 {}".format(gt_inds, gt_inds2))
+        print("MIX-TRAINING: TEST: gt_inds {} ?? {}".format(gt_inds, gt_inds2))
     else:
       gt_inds  = np.where(roidb[0]['gt_classes'] != 0 & np.all(roidb[0]['gt_overlaps'].toarray() > -1.0, axis=1))[0]
       gt_inds2 = np.where(roidb[1]['gt_classes'] != 0 & np.all(roidb[1]['gt_overlaps'].toarray() > -1.0, axis=1))[0]

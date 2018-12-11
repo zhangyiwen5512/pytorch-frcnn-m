@@ -87,6 +87,8 @@ class RoIDataLayer(object):
     separate process and made available through self._blob_queue.
     """
     db_inds = self._get_next_minibatch_inds()
+    if cfg.MIX_TEST:
+      print("TEST: db_inds: {}|".format(db_inds))
     minibatch_db = [self._roidb[i] for i in db_inds]
     return get_minibatch(minibatch_db, self._num_classes)
       
@@ -104,10 +106,19 @@ if __name__ == "__main__":
                    [100, 100, 150, 300]])
   blob['gt_classes'] = np.array([1,2])
   blob['flipped'] = False
-  roidb = [blob]
+
+  blob2 = {'data11': np.ones((3, 4, 3))}
+  blob2['image'] = 'data/000001.jpg'
+  blob2['boxes'] = np.array([[10, 10, 20, 25],
+                            [10, 10, 15, 30]])
+  blob2['gt_classes'] = np.array([0, 1])
+  blob2['flipped'] = False
+  roidb = [blob, blob2]
+
+  cfg.MIX_TRAINING = True
 
   datalayer = RoIDataLayer(roidb=roidb, num_classes=21)
   batch = datalayer.forward()
   print(batch)
-  print(batch['data'].size)
+  print(batch['data'].shape)
   # print(np.ones((2,3)))
