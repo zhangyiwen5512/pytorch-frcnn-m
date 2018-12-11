@@ -12,9 +12,12 @@ RoIDataLayer implements a Caffe Python layer.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from model.config import cfg
-from roi_data_layer.minibatch import get_minibatch
+try:
+  from model.config import cfg
+  from roi_data_layer.minibatch import get_minibatch
+except:
+  from lib.model.config import cfg
+  from lib.roi_data_layer.minibatch import get_minibatch
 import numpy as np
 import time
 
@@ -91,3 +94,20 @@ class RoIDataLayer(object):
     """Get blobs and copy them into this layer's top blob vector."""
     blobs = self._get_next_minibatch()
     return blobs
+
+if __name__ == "__main__":
+  # one artificial image
+  # (375, 500, 3)
+  blob = {'data11':np.ones((3,4,3))}
+  blob['image'] = 'data/000003.jpg'
+  blob['boxes'] = np.array([[100,100,200,250],
+                   [100, 100, 150, 300]])
+  blob['gt_classes'] = np.array([1,2])
+  blob['flipped'] = False
+  roidb = [blob]
+
+  datalayer = RoIDataLayer(roidb=roidb, num_classes=21)
+  batch = datalayer.forward()
+  print(batch)
+  print(batch['data'].size)
+  # print(np.ones((2,3)))

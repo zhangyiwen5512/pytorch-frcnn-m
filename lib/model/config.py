@@ -22,7 +22,7 @@ __C.TRAIN = edict()
 
 ### Custom
 __C.MIX_TRAINING = False
-__C.MIX_TEST = False   # Just for test code, # OK test complete
+__C.MIX_TEST = True   # Just for test code, # OK test complete
 
 # Initial learning rate
 __C.TRAIN.LEARNING_RATE = 0.001

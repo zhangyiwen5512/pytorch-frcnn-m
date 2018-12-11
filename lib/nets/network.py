@@ -530,6 +530,7 @@ class Network(nn.Module):
   def get_summary(self, blobs):
     self.eval()
     self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'])
+    # self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'], blobs['gt_boxes2'])
     self.train()
     summary = self._run_summary_op(True)
 
@@ -570,7 +571,8 @@ class Network(nn.Module):
     return rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss, summary
 
   def train_step_no_return(self, blobs, train_op):
-    self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'])
+    # self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'])
+    self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'], blobs['gt_boxes2'])
     train_op.zero_grad()
     self._losses['total_loss'].backward()
     train_op.step()
