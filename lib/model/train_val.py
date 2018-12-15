@@ -44,6 +44,8 @@ class SolverWrapper(object):
     self.roidb = roidb
     self.valroidb = valroidb
     self.output_dir = output_dir
+    if cfg.MIX_TRAINING:
+      self.output_dir = os.path.join(output_dir, 'mix-training')
     self.tbdir = tbdir
     # Simply put '_val' at the end to save the summaries from the validation set
     self.tbvaldir = tbdir + '_val'
@@ -60,6 +62,7 @@ class SolverWrapper(object):
     # Store the model snapshot
     filename = cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_{:d}'.format(iter) + '.pth'
     filename = os.path.join(self.output_dir, filename)
+
     torch.save(self.net.state_dict(), filename)
     print('Wrote snapshot to: {:s}'.format(filename))
 
@@ -148,6 +151,7 @@ class SolverWrapper(object):
     sfiles = [ss for ss in sfiles if ss not in redfiles]
 
     nfiles = os.path.join(self.output_dir, cfg.TRAIN.SNAPSHOT_PREFIX + '_iter_*.pkl')
+
     nfiles = glob.glob(nfiles)
     nfiles.sort(key=os.path.getmtime)
     redfiles = [redfile.replace('.pth', '.pkl') for redfile in redfiles]
@@ -250,17 +254,17 @@ class SolverWrapper(object):
 
       now = time.time()
       # Close Summary ...
-      if False or iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
-        # Compute the graph with summary
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-          self.net.train_step_with_summary(blobs, self.optimizer)
-        for _sum in summary: self.writer.add_summary(_sum, float(iter))
-        # Also check the summary on the validation set
-        blobs_val = self.data_layer_val.forward()
-        summary_val = self.net.get_summary(blobs_val)
-        for _sum in summary_val: self.valwriter.add_summary(_sum, float(iter))
-        last_summary_time = now
-      else:
+      # if False and iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
+      #   # Compute the graph with summary
+      #   rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+      #     self.net.train_step_with_summary(blobs, self.optimizer)
+      #   for _sum in summary: self.writer.add_summary(_sum, float(iter))
+      #   # Also check the summary on the validation set
+      #   blobs_val = self.data_layer_val.forward()
+      #   summary_val = self.net.get_summary(blobs_val)
+      #   for _sum in summary_val: self.valwriter.add_summary(_sum, float(iter))
+      #   last_summary_time = now
+      if True:
         # Compute the graph without summary
         rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
           self.net.train_step(blobs, self.optimizer)
@@ -277,7 +281,7 @@ class SolverWrapper(object):
         #   print(k, utils.timer.timer.average_time(k))
 
       # Snapshotting
-      if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+      if iter % cfg.TRAIN.SNAPSHOT_ITERS == 0 or iter == 1 :
         last_snapshot_iter = iter
         ss_path, np_path = self.snapshot(iter)
         np_paths.append(np_path)

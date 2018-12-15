@@ -1,3 +1,4 @@
+#coding:utf-8
 # --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
@@ -27,7 +28,7 @@ from utils.visualization import draw_bounding_boxes
 from layer_utils.roi_pooling.roi_pool import RoIPoolFunction
 from layer_utils.roi_align.crop_and_resize import CropAndResizeFunction
 
-from model.config import cfg, tmp_lam
+from model.config import cfg, tmp_lam, tmp_lam2, tprint
 
 import tensorboardX as tb
 
@@ -53,6 +54,15 @@ class Network(nn.Module):
     self.index = None
     if self.mix_training:
       print("Using Mix-training for RPN")
+      if cfg.RPN_MIX_ONLY:
+        print("RPN Mix-training ONLY ... ")
+      assert cfg.RCNN_MIX == False, "Only one mix-training can be applied, Runing RPN-MIX ..."
+    if cfg.RCNN_MIX:
+      print("Using Mis-training for RCNN ing...")
+      self.rcnn_mix_idx = None
+      assert cfg.MIX_TRAINING == False, "Only one mix-training can be applied, Runing RCNN-MIX ..."
+      cfg.RPN_MIX_ONLY = False
+      assert cfg.RPN_MIX_ONLY == False, "cfg.RPN_MIX_ONLY should be False, Runing RCNN-MIX ..."
 
   def _add_gt_image(self):
     # add back mean
@@ -180,19 +190,6 @@ class Network(nn.Module):
     for k in self._proposal_targets.keys():
       self._score_summaries[k] = self._proposal_targets[k]
 
-    rois, roi_scores, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
-      proposal_target_layer(
-        rois, roi_scores, self._gt_boxes, self._num_classes)
-
-    self._proposal_targets['rois'] = rois
-    self._proposal_targets['labels'] = labels.long()
-    self._proposal_targets['bbox_targets'] = bbox_targets
-    self._proposal_targets['bbox_inside_weights'] = bbox_inside_weights
-    self._proposal_targets['bbox_outside_weights'] = bbox_outside_weights
-
-    for k in self._proposal_targets.keys():
-      self._score_summaries[k] = self._proposal_targets[k]
-
     return rois, roi_scores
 
   def _anchor_component(self, height, width):
@@ -290,28 +287,48 @@ class Network(nn.Module):
 
         rpn_loss_box = tmp_lam * rpn_loss_box1 + (1 - tmp_lam) * rpn_loss_box2
 
-    # RCNN, class loss
-    cls_score = self._predictions["cls_score"]
-    label = self._proposal_targets["labels"].view(-1)
-    cross_entropy = F.cross_entropy(cls_score.view(-1, self._num_classes), label)
 
-    # RCNN, bbox loss
-    bbox_pred = self._predictions['bbox_pred']
-    bbox_targets = self._proposal_targets['bbox_targets']
-    bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
-    bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
-    loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
+    if cfg.RPN_MIX_ONLY == False:
+      # RCNN, class loss
+      cls_score = self._predictions["cls_score"]
+      label = self._proposal_targets["labels"].view(-1)
+      cross_entropy = F.cross_entropy(cls_score.view(-1, self._num_classes), label)
 
-    self._losses['cross_entropy'] = cross_entropy
-    self._losses['loss_box'] = loss_box
-    self._losses['rpn_cross_entropy'] = rpn_cross_entropy
-    self._losses['rpn_loss_box'] = rpn_loss_box
+      # RCNN, bbox loss
+      bbox_pred = self._predictions['bbox_pred']
+      bbox_targets = self._proposal_targets['bbox_targets']
+      bbox_inside_weights = self._proposal_targets['bbox_inside_weights']
+      bbox_outside_weights = self._proposal_targets['bbox_outside_weights']
+      loss_box = self._smooth_l1_loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
-    loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+      if cfg.RCNN_MIX:
+        label2 = self._proposal_targets["labels"][self.rcnn_mix_idx, :].view(-1)
+        cross_entropy2 = F.cross_entropy(cls_score.view(-1, self._num_classes), label2)
+        cross_entropy = tmp_lam2 * cross_entropy + (1 - tmp_lam2) * cross_entropy2
+
+        bbox_targets2 = self._proposal_targets['bbox_targets'][self.rcnn_mix_idx, :]
+        bbox_inside_weights2 = self._proposal_targets['bbox_inside_weights'][self.rcnn_mix_idx, :]
+        bbox_outside_weights2 = self._proposal_targets['bbox_outside_weights'][self.rcnn_mix_idx, :]
+        loss_box2 = self._smooth_l1_loss(bbox_pred, bbox_targets2, bbox_inside_weights2, bbox_outside_weights2)
+        loss_box = tmp_lam2 * loss_box + (1 - tmp_lam2) * loss_box2
+    else:
+      tprint("WARNING: RPN_MIX_ONLY")
+
+    if cfg.RPN_MIX_ONLY:
+      self._losses['rpn_cross_entropy'] = rpn_cross_entropy
+      self._losses['rpn_loss_box'] = rpn_loss_box
+      loss = rpn_cross_entropy + rpn_loss_box
+    else:
+      self._losses['cross_entropy'] = cross_entropy
+      self._losses['loss_box'] = loss_box
+      self._losses['rpn_cross_entropy'] = rpn_cross_entropy
+      self._losses['rpn_loss_box'] = rpn_loss_box
+      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+
     self._losses['total_loss'] = loss
 
-    for k in self._losses.keys():
-      self._event_summaries[k] = self._losses[k]
+    # for k in self._losses.keys():
+    #   self._event_summaries[k] = self._losses[k]
 
     return loss
 
@@ -446,20 +463,35 @@ class Network(nn.Module):
 
     # RPN layer forward
     rois = self._region_proposal(net_conv)
-    if cfg.POOLING_MODE == 'crop':
-      pool5 = self._crop_pool_layer(net_conv, rois)
-    else:
-      pool5 = self._roi_pool_layer(net_conv, rois)
 
-    if self._mode == 'TRAIN':
-      torch.backends.cudnn.benchmark = True # benchmark because now the input size are fixed
-    fc7 = self._head_to_tail(pool5)
+    if cfg.RPN_MIX_ONLY == False:   # IF RPN Only, skip this block. 
+      if cfg.POOLING_MODE == 'crop':
+        pool5 = self._crop_pool_layer(net_conv, rois)
+      else:
+        pool5 = self._roi_pool_layer(net_conv, rois)
+      # RCNN-MIX
+      tprint("pool5", pool5.size()[0])
+      if cfg.RCNN_MIX:
+        _len = pool5.size()[0]
+        # ##  mixup
+        lam = np.random.beta(0.1, 0.1)
+        tmp_lam2 = lam
+        rcnn_index = np.arange(_len)
+        np.random.shuffle(rcnn_index)
+        self.rcnn_mix_idx = rcnn_index
+        pool5 = tmp_lam2 * pool5 + (1 - tmp_lam2) * pool5[rcnn_index, :]
 
-    cls_prob, bbox_pred = self._region_classification(fc7)
+      if self._mode == 'TRAIN':
+        torch.backends.cudnn.benchmark = True  # benchmark because now the input size are fixed
+      fc7 = self._head_to_tail(pool5)
+
+      cls_prob, bbox_pred = self._region_classification(fc7)
     
-    for k in self._predictions.keys():
-      self._score_summaries[k] = self._predictions[k]
+    # for k in self._predictions.keys():
+    #   self._score_summaries[k] = self._predictions[k]
 
+    tprint("DEBUG ing ...")
+    exit(0)
     return rois, cls_prob, bbox_pred
 
   def forward(self, image, im_info, gt_boxes=None, gt_boxes2=None, mode='TRAIN'):
@@ -474,6 +506,9 @@ class Network(nn.Module):
     self._im_info = im_info  # No need to change; actually it can be an list
     self._gt_boxes  = torch.from_numpy(gt_boxes).to(self._device)  if gt_boxes  is not None else None
     self._gt_boxes2 = torch.from_numpy(gt_boxes2).to(self._device) if gt_boxes2 is not None else None
+    if cfg.MIX_TEST:
+      assert self._gt_boxes == None,  "TEST: GT_BOXES 1 is NONE "
+      assert self._gt_boxes2 == None, "TEST: GT_BOXES 2 is NONE "
 
     self._mode = mode
 

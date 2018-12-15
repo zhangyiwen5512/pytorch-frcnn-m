@@ -12,4 +12,4 @@ lib/pycocotools/_mask.so
 *.pth
 *.tgz
 *.png
-
+*.pkl

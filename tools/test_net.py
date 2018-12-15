@@ -82,6 +82,7 @@ if __name__ == '__main__':
   tag = args.tag
   tag = tag if tag else 'default'
   filename = tag + '/' + filename
+  print("TEST: filename {}".format(filename))
 
   imdb = get_imdb(args.imdb_name)
   imdb.competition_mode(args.comp_mode)
@@ -110,9 +111,11 @@ if __name__ == '__main__':
     net._device = 'cpu'
   net.to(net._device)
 
+
   if args.model:
-    print(('Loading model check point from {:s}').format(args.model))
-    net.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+    weight_pth = os.path.join(cfg.ROOT_DIR, args.model)
+    print(('Loading model check point from {:s}').format(weight_pth))
+    net.load_state_dict(torch.load(weight_pth, map_location=lambda storage, loc: storage))
     print('Loaded.')
   else:
     print(('Loading initial weights from {:s}').format(args.weight))

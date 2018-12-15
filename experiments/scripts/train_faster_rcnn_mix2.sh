@@ -1,4 +1,5 @@
 #!/bin/bash
+# mix-training from well-trained model
 
 set -x
 set -e
@@ -57,29 +58,16 @@ else
 fi
 set -x
 
-if [ ! -f ${NET_FINAL}.index ]; then
-  if [[ ! -z  ${EXTRA_ARGS_SLUG}  ]]; then
-    CUDA_VISIBLE_DEVICES=${GPU_ID} time python ./tools/trainval_net.py \
-      --weight data/imagenet_weights/${NET}.pth \
-      --imdb ${TRAIN_IMDB} \
-      --imdbval ${TEST_IMDB} \
-      --iters ${ITERS} \
-      --cfg experiments/cfgs/${NET}_mix.yml \
-      --tag ${EXTRA_ARGS_SLUG} \
-      --net ${NET} \
-      --set ANCHOR_SCALES ${ANCHORS} ANCHOR_RATIOS ${RATIOS} \
-      TRAIN.STEPSIZE ${STEPSIZE} ${EXTRA_ARGS}
-  else
-    CUDA_VISIBLE_DEVICES=${GPU_ID} time python ./tools/trainval_net.py \
-      --weight data/imagenet_weights/${NET}.pth \
-      --imdb ${TRAIN_IMDB} \
-      --imdbval ${TEST_IMDB} \
-      --iters ${ITERS} \
-      --cfg experiments/cfgs/${NET}_mix.yml \
-      --net ${NET} \
-      --set ANCHOR_SCALES ${ANCHORS} ANCHOR_RATIOS ${RATIOS} \
-      TRAIN.STEPSIZE ${STEPSIZE} ${EXTRA_ARGS}
-  fi
-fi
 
-./experiments/scripts/test_faster_rcnn_mix.sh $@
+CUDA_VISIBLE_DEVICES=${GPU_ID} time python ./tools/trainval_net.py \
+      --weight data/imagenet_weights/${NET}.pth \
+      --imdb ${TRAIN_IMDB} \
+      --iters ${ITERS} \
+      --cfg experiments/cfgs/${NET}_mix.yml \
+      --net ${NET} \
+      --tag ${EXTRA_ARGS} \
+      --set ANCHOR_SCALES ${ANCHORS} ANCHOR_RATIOS ${RATIOS} \
+      TRAIN.STEPSIZE ${STEPSIZE}
+
+
+# ./experiments/scripts/test_faster_rcnn_mix.sh $@

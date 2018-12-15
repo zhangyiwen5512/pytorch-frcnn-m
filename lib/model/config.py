@@ -9,6 +9,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 tmp_lam = 0.99
+tmp_lam2 = 0.99
 
 __C = edict()
 # Consumers can get config by:
@@ -21,8 +22,11 @@ cfg = __C
 __C.TRAIN = edict()
 
 ### Custom
-__C.MIX_TRAINING = False
-__C.MIX_TEST = True   # Just for test code, # OK test complete
+__C.MIX_TRAINING = False  # For RPN mix-training, with rcnn training
+__C.RPN_MIX_ONLY = True   # For RPN mix-training, without rcnn training, cfg.MIX_TRAINING should be True
+__C.MIX_TEST = True       # Just for test code, # OK test complete
+__C.RCNN_MIX = False      # For RCNN mix-training, with rpn training
+__C.DEBUG = True          # Debug code, tprint() work when True
 
 # Initial learning rate
 __C.TRAIN.LEARNING_RATE = 0.001
@@ -386,3 +390,9 @@ def cfg_from_list(cfg_list):
       'type {} does not match original type {}'.format(
         type(value), type(d[subkey]))
     d[subkey] = value
+
+def tprint(*args):
+  if cfg.DEBUG:
+    print("[DEBUG]: ", end="")
+    print(*args)
+    print("          [*] Turn off [DEBUG] by set cfg.DEBUG == False .")
