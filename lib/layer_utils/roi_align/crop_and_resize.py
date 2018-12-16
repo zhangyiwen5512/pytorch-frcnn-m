@@ -65,3 +65,15 @@ class CropAndResize(nn.Module):
 
     def forward(self, image, boxes, box_ind):
         return CropAndResizeFunction(self.crop_height, self.crop_width, self.extrapolation_value)(image, boxes, box_ind)
+
+
+if __name__ == "__main__":
+    #Test Module
+    import numpy as np
+    from torch.autograd import Variable
+    bottom = Variable(torch.Tensor(np.ones(1024*38*50, dtype=np.float32).reshape((1,1024,38,50)))) / 2.0
+    print(bottom.size())
+    x = CropAndResizeFunction(7,7)(bottom, torch.Tensor([[0.4561, 0.3417, 0.7110, 0.8990], [ 0.3452,  0.5487,  0.7145,  0.8037]]), torch.Tensor([0, 0]))
+    print(x.size())
+    # print(x)
+    pass

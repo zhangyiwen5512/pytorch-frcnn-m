@@ -130,8 +130,18 @@ class Network(nn.Module):
     width = bottom.size(3)
 
     pre_pool_size = cfg.POOLING_SIZE * 2 if max_pool else cfg.POOLING_SIZE
-    crops = CropAndResizeFunction(pre_pool_size, pre_pool_size)(bottom, 
+    if cfg.DEBUG:
+      tprint(bottom.size(), type(bottom))
+      aaa = torch.cat([y1 / (height - 1), x1 / (width - 1), y2 / (height - 1), x2 / (width - 1)], 1)
+      tprint("torch.cat ??", aaa.size(), aaa)
+      iiint = rois[:, 0].int()
+      tprint("What this ??", iiint.size(), iiint)
+      tprint("DEBUG ing ...")
+      exit(0)
+
+    crops = CropAndResizeFunction(pre_pool_size, pre_pool_size)(bottom,
       torch.cat([y1/(height-1),x1/(width-1),y2/(height-1),x2/(width-1)], 1), rois[:, 0].int())
+
     if max_pool:
       crops = F.max_pool2d(crops, 2, 2)
     return crops
@@ -464,7 +474,7 @@ class Network(nn.Module):
     # RPN layer forward
     rois = self._region_proposal(net_conv)
 
-    if cfg.RPN_MIX_ONLY == False:   # IF RPN Only, skip this block. 
+    if cfg.RPN_MIX_ONLY == False:   # IF RPN Only, skip this block.
       if cfg.POOLING_MODE == 'crop':
         pool5 = self._crop_pool_layer(net_conv, rois)
       else:
@@ -486,13 +496,13 @@ class Network(nn.Module):
       fc7 = self._head_to_tail(pool5)
 
       cls_prob, bbox_pred = self._region_classification(fc7)
-    
+      return rois, cls_prob, bbox_pred
+    else:
+      return rois, None, None
     # for k in self._predictions.keys():
     #   self._score_summaries[k] = self._predictions[k]
 
-    tprint("DEBUG ing ...")
-    exit(0)
-    return rois, cls_prob, bbox_pred
+
 
   def forward(self, image, im_info, gt_boxes=None, gt_boxes2=None, mode='TRAIN'):
 
@@ -573,7 +583,13 @@ class Network(nn.Module):
 
   def train_step(self, blobs, train_op):
     self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'], blobs['gt_boxes2'])
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
+    if cfg.RPN_MIX_ONLY:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
+                                                             self._losses['rpn_loss_box'].item(), \
+                                                             -1, -1, \
+                                                             self._losses['total_loss'].item()
+    else:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
                                                                         self._losses['rpn_loss_box'].item(), \
                                                                         self._losses['cross_entropy'].item(), \
                                                                         self._losses['loss_box'].item(), \
@@ -590,6 +606,7 @@ class Network(nn.Module):
 
   def train_step_with_summary(self, blobs, train_op):
     # self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'])
+    raise NotImplementedError("[DEBUG] This module is under coding ...")
     self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'], blobs['gt_boxes2'])
     rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
                                                                         self._losses['rpn_loss_box'].item(), \

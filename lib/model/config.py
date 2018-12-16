@@ -23,7 +23,7 @@ __C.TRAIN = edict()
 
 ### Custom
 __C.MIX_TRAINING = False  # For RPN mix-training, with rcnn training
-__C.RPN_MIX_ONLY = True   # For RPN mix-training, without rcnn training, cfg.MIX_TRAINING should be True
+__C.RPN_MIX_ONLY = False   # For RPN mix-training, without rcnn training, cfg.MIX_TRAINING should be True
 __C.MIX_TEST = True       # Just for test code, # OK test complete
 __C.RCNN_MIX = False      # For RCNN mix-training, with rpn training
 __C.DEBUG = True          # Debug code, tprint() work when True
