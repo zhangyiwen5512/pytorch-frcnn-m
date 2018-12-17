@@ -98,6 +98,12 @@ if __name__ == '__main__':
   print('Using config:')
   pprint.pprint(cfg)
 
+  # Notations:
+  if cfg.RCNN_MIX == True: print("-"*20 + "\n      RCNN_MIX without training the base Net\n " +
+                                 "-"*20)
+  if cfg.RPN_MIX_ONLY: print("-"*20 + "\n      RPN_MIX ONLY without rcnn \n " +
+                                 "-"*20)
+
   np.random.seed(cfg.RNG_SEED)
 
   # train set

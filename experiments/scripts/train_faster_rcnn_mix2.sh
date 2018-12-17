@@ -70,4 +70,4 @@ CUDA_VISIBLE_DEVICES=${GPU_ID} time python ./tools/trainval_net.py \
       TRAIN.STEPSIZE ${STEPSIZE}
 
 
-# ./experiments/scripts/test_faster_rcnn_mix.sh $@
+# ./experiments/scripts/test_faster_rcnn_mix2.sh $@

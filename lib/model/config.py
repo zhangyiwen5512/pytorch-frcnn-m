@@ -24,8 +24,8 @@ __C.TRAIN = edict()
 ### Custom
 __C.MIX_TRAINING = False  # For RPN mix-training, with rcnn training
 __C.RPN_MIX_ONLY = False   # For RPN mix-training, without rcnn training, cfg.MIX_TRAINING should be True
-__C.MIX_TEST = True       # Just for test code, # OK test complete
 __C.RCNN_MIX = False      # For RCNN mix-training, with rpn training
+__C.MIX_TEST = True       # Just for test code, # OK test complete
 __C.DEBUG = True          # Debug code, tprint() work when True
 
 # Initial learning rate
@@ -44,7 +44,7 @@ __C.TRAIN.GAMMA = 0.1
 __C.TRAIN.STEPSIZE = [30000]
 
 # Iteration intervals for showing the loss during training, on command line interface
-__C.TRAIN.DISPLAY = 10
+__C.TRAIN.DISPLAY = 100
 
 # Whether to double the learning rate for bias
 __C.TRAIN.DOUBLE_BIAS = True

@@ -130,15 +130,6 @@ class Network(nn.Module):
     width = bottom.size(3)
 
     pre_pool_size = cfg.POOLING_SIZE * 2 if max_pool else cfg.POOLING_SIZE
-    if cfg.DEBUG:
-      tprint(bottom.size(), type(bottom))
-      aaa = torch.cat([y1 / (height - 1), x1 / (width - 1), y2 / (height - 1), x2 / (width - 1)], 1)
-      tprint("torch.cat ??", aaa.size(), aaa)
-      iiint = rois[:, 0].int()
-      tprint("What this ??", iiint.size(), iiint)
-      tprint("DEBUG ing ...")
-      exit(0)
-
     crops = CropAndResizeFunction(pre_pool_size, pre_pool_size)(bottom,
       torch.cat([y1/(height-1),x1/(width-1),y2/(height-1),x2/(width-1)], 1), rois[:, 0].int())
 
@@ -329,11 +320,16 @@ class Network(nn.Module):
       self._losses['rpn_loss_box'] = rpn_loss_box
       loss = rpn_cross_entropy + rpn_loss_box
     else:
-      self._losses['cross_entropy'] = cross_entropy
-      self._losses['loss_box'] = loss_box
-      self._losses['rpn_cross_entropy'] = rpn_cross_entropy
-      self._losses['rpn_loss_box'] = rpn_loss_box
-      loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+      if cfg.RCNN_MIX:
+        self._losses['cross_entropy'] = cross_entropy
+        self._losses['loss_box'] = loss_box
+        loss = cross_entropy + loss_box
+      else:
+        self._losses['cross_entropy'] = cross_entropy
+        self._losses['loss_box'] = loss_box
+        self._losses['rpn_cross_entropy'] = rpn_cross_entropy
+        self._losses['rpn_loss_box'] = rpn_loss_box
+        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
 
     self._losses['total_loss'] = loss
 
@@ -482,6 +478,7 @@ class Network(nn.Module):
       # RCNN-MIX
       tprint("pool5", pool5.size()[0])
       if cfg.RCNN_MIX:
+        pool5 = pool5.detach()
         _len = pool5.size()[0]
         # ##  mixup
         lam = np.random.beta(0.1, 0.1)
