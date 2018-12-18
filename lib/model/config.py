@@ -22,11 +22,11 @@ cfg = __C
 __C.TRAIN = edict()
 
 ### Custom
-__C.MIX_TRAINING = False  # For RPN mix-training, with rcnn training
+__C.MIX_TRAINING = True  # For RPN mix-training, with rcnn training
 __C.RPN_MIX_ONLY = False   # For RPN mix-training, without rcnn training, cfg.MIX_TRAINING should be True
-__C.RCNN_MIX = False      # For RCNN mix-training, with rpn training
-__C.MIX_TEST = True       # Just for test code, # OK test complete
-__C.DEBUG = True          # Debug code, tprint() work when True
+__C.RCNN_MIX = True      # For RCNN mix-training, with rpn training
+__C.MIX_TEST = False       # Just for test code, # OK test complete
+__C.DEBUG = False          # Debug code, tprint() work when True
 
 # Initial learning rate
 __C.TRAIN.LEARNING_RATE = 0.001
@@ -265,7 +265,7 @@ __C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 __C.RNG_SEED = 3
 
 # Root directory of project
-__C.ROOT_DIR = osp.abspath("/media/trans/mnt/")
+__C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
 
 # Data directory
 __C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))

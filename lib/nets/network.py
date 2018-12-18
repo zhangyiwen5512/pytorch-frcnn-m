@@ -56,13 +56,13 @@ class Network(nn.Module):
       print("Using Mix-training for RPN")
       if cfg.RPN_MIX_ONLY:
         print("RPN Mix-training ONLY ... ")
-      assert cfg.RCNN_MIX == False, "Only one mix-training can be applied, Runing RPN-MIX ..."
-    if cfg.RCNN_MIX:
-      print("Using Mis-training for RCNN ing...")
-      self.rcnn_mix_idx = None
-      assert cfg.MIX_TRAINING == False, "Only one mix-training can be applied, Runing RCNN-MIX ..."
-      cfg.RPN_MIX_ONLY = False
-      assert cfg.RPN_MIX_ONLY == False, "cfg.RPN_MIX_ONLY should be False, Runing RCNN-MIX ..."
+        assert cfg.RCNN_MIX == False, "Only one mix-training can be applied, Runing RPN-MIX ..."
+      if cfg.RCNN_MIX:
+        print("Using Mis-training for RCNN ing...")
+        self.rcnn_mix_idx = None
+        assert cfg.RPN_MIX_ONLY == False, "Only one mix-training can be applied, Runing RCNN-MIX ..."
+        cfg.RPN_MIX_ONLY = False
+        assert cfg.RPN_MIX_ONLY == False, "cfg.RPN_MIX_ONLY should be False, Runing RCNN-MIX ..."
 
   def _add_gt_image(self):
     # add back mean
@@ -585,6 +585,11 @@ class Network(nn.Module):
                                                              self._losses['rpn_loss_box'].item(), \
                                                              -1, -1, \
                                                              self._losses['total_loss'].item()
+    elif cfg.RCNN_MIX:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = -1, -1, \
+                                                             self._losses["cross_entropy"].item(), \
+                                                             self._losses['loss_box'].item(), \
+                                                             self._losses['total_loss'].item()
     else:
       rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
                                                                         self._losses['rpn_loss_box'].item(), \
@@ -605,11 +610,23 @@ class Network(nn.Module):
     # self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'])
     raise NotImplementedError("[DEBUG] This module is under coding ...")
     self.forward(blobs['data'], blobs['im_info'], blobs['gt_boxes'], blobs['gt_boxes2'])
-    rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
+    if cfg.RPN_MIX_ONLY:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
+                                                             self._losses['rpn_loss_box'].item(), \
+                                                             -1, -1, \
+                                                             self._losses['total_loss'].item()
+    elif cfg.RCNN_MIX:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = -1, -1, \
+                                                             self._losses["cross_entropy"].item(), \
+                                                             self._losses['loss_box'].item(), \
+                                                             self._losses['total_loss'].item()
+    else:
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, loss = self._losses["rpn_cross_entropy"].item(), \
                                                                         self._losses['rpn_loss_box'].item(), \
                                                                         self._losses['cross_entropy'].item(), \
                                                                         self._losses['loss_box'].item(), \
                                                                         self._losses['total_loss'].item()
+
     train_op.zero_grad()
     self._losses['total_loss'].backward()
     train_op.step()
